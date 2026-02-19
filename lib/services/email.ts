@@ -12,9 +12,7 @@ function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
 }
 
-// TODO: Change back to 'blog-agent@emergingtechnation.com' after verifying
-// the domain at https://resend.com/domains
-const FROM_EMAIL = 'onboarding@resend.dev';
+const FROM_EMAIL = 'noreply@emergingtechnation.com';
 
 /**
  * Sends the weekly topic selection email to the site owner.
