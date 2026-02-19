@@ -254,8 +254,10 @@ export async function transitionApprovedToPublished(
  * Hourly cron orchestrator — idempotent, called by /api/cron/workflow.
  * Checks current state and advances the workflow as needed.
  */
-export async function runWorkflowCron(): Promise<{ action: string }> {
-  console.log('[WorkflowCron] Starting hourly check...');
+export async function runWorkflowCron(
+  force = false
+): Promise<{ action: string }> {
+  console.log(`[WorkflowCron] Starting hourly check... (force=${force})`);
   const supabase = getSupabase();
 
   // Priority 1: Advance TOPIC_SELECTED → write draft
@@ -282,17 +284,19 @@ export async function runWorkflowCron(): Promise<{ action: string }> {
     return { action: 'post_published' };
   }
 
-  // Priority 3: Start new weekly research cycle (Monday 9am UTC)
+  // Priority 3: Start new weekly research cycle
+  // Runs automatically on Monday 9am UTC, or immediately when force=true
   const now = new Date();
   const isMonday = now.getUTCDay() === 1;
   const isNineAm = now.getUTCHours() === 9;
 
-  if (isMonday && isNineAm) {
+  if (force || (isMonday && isNineAm)) {
     const shouldStart = await shouldStartNewCycle();
     if (shouldStart) {
       await transitionIdleToTopicsSent();
       return { action: 'research_started' };
     }
+    return { action: 'cycle_skipped_already_active' };
   }
 
   console.log('[WorkflowCron] No transitions needed this tick');
