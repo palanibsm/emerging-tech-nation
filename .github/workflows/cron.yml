@@ -6,25 +6,47 @@ on:
     - cron: '0 * * * *'
   # Allow manual trigger from GitHub Actions UI for testing
   workflow_dispatch:
+    inputs:
+      force:
+        description: 'Bypass Monday/9am schedule check'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 jobs:
   run-workflow:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
-      - name: Trigger workflow cron
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run workflow cron
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X GET \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.SITE_URL }}/api/cron/workflow")
-
-          echo "Response status: $response"
-
-          if [ "$response" != "200" ]; then
-            echo "Cron endpoint returned non-200 status: $response"
-            exit 1
+          ARGS=""
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            ARGS="--force"
           fi
-
-          echo "Workflow cron completed successfully"
+          npx tsx scripts/run-cron.ts $ARGS
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OWNER_EMAIL: ${{ secrets.OWNER_EMAIL }}
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
