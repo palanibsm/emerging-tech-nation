@@ -20,9 +20,18 @@ interface TopicsEmailProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
+  'Agentic AI': '#7c3aed',
   AI: '#6366f1',
+  Quantum: '#0e7490',
+  Robotics: '#b45309',
+  'AR/VR': '#9333ea',
   IoT: '#0891b2',
-  'AR/VR': '#7c3aed',
+  Biotech: '#16a34a',
+  'Space Tech': '#1d4ed8',
+  Cybersecurity: '#dc2626',
+  'Green Tech': '#15803d',
+  Web3: '#d97706',
+  Semiconductors: '#64748b',
 };
 
 export default function TopicsEmail({ topics, token }: TopicsEmailProps) {

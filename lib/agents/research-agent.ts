@@ -1,15 +1,18 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { parallelSearch } from '@/lib/services/search';
-import type { Topic, ResearchResult } from '@/types';
+import type { Topic, TopicCategory, ResearchResult } from '@/types';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const RESEARCH_QUERIES = [
-  'trending AI artificial intelligence news breakthroughs 2025',
-  'IoT Internet of Things innovations smart devices 2025',
-  'AR VR augmented reality virtual reality technology 2025',
-  'large language model generative AI applications 2025',
-  'edge computing robotics emerging technology 2025',
+  'agentic AI autonomous agents breakthrough news latest 2025 2026',
+  'quantum computing breakthrough research applications latest 2025 2026',
+  'robotics humanoid robot AI news latest 2025 2026',
+  'spatial computing AR VR mixed reality new developments 2025 2026',
+  'biotech genomics synthetic biology breakthrough 2025 2026',
+  'space technology satellite launch commercial space news 2025 2026',
+  'cybersecurity threat AI-powered attacks defense 2025 2026',
+  'semiconductor chip AI hardware breakthrough 2025 2026',
 ];
 
 /**
@@ -54,9 +57,10 @@ Content: ${r.content.slice(0, 800)}`
 }
 
 async function curateTopicsWithClaude(researchContext: string): Promise<Topic[]> {
-  const prompt = `You are a tech blog editor for "Emerging Tech Nation", covering AI, IoT, and AR/VR.
+  const prompt = `You are a tech blog editor for "Emerging Tech Nation", covering all cutting-edge and emerging technologies.
 
 Based on these research results from today's tech news, generate exactly 5 compelling blog topic suggestions.
+Pick the 5 most newsworthy, exciting stories across ANY emerging technology — do not restrict to specific domains.
 Each topic should be timely, interesting to tech enthusiasts, and suitable for a 1500-2500 word blog post.
 
 RESEARCH RESULTS:
@@ -67,16 +71,16 @@ Return ONLY a valid JSON array of exactly 5 topic objects. No markdown, no expla
 Each object must have exactly these fields:
 - title: string (compelling blog post title, 50-80 chars)
 - description: string (exactly 2 sentences describing what the post will cover)
-- category: "AI" | "IoT" | "AR/VR"
+- category: one of "Agentic AI" | "AI" | "Quantum" | "Robotics" | "AR/VR" | "IoT" | "Biotech" | "Space Tech" | "Cybersecurity" | "Green Tech" | "Web3" | "Semiconductors"
 - searchQuery: string (targeted search query for deeper research on this topic)
 
 Example:
 [
   {
-    "title": "How Claude's Latest Update Is Changing Enterprise AI",
-    "description": "Anthropic's newest model brings unprecedented reasoning to business workflows. We explore five real-world applications already transforming industries from healthcare to finance.",
-    "category": "AI",
-    "searchQuery": "Claude AI enterprise applications 2025 business use cases"
+    "title": "How Agentic AI Is Replacing Entire Software Teams in 2025",
+    "description": "Autonomous AI agents are now writing, testing, and deploying code with minimal human oversight. We explore which companies are leading this shift and what it means for developers.",
+    "category": "Agentic AI",
+    "searchQuery": "agentic AI software development autonomous coding agents 2025"
   }
 ]`;
 
@@ -106,8 +110,12 @@ Example:
     if (!topic.title || !topic.description || !topic.category || !topic.searchQuery) {
       throw new Error('[ResearchAgent] Topic missing required fields');
     }
-    if (!['AI', 'IoT', 'AR/VR'].includes(topic.category)) {
-      topic.category = 'AI'; // Fallback to AI if invalid category
+    const validCategories: TopicCategory[] = [
+      'Agentic AI', 'AI', 'Quantum', 'Robotics', 'AR/VR', 'IoT',
+      'Biotech', 'Space Tech', 'Cybersecurity', 'Green Tech', 'Web3', 'Semiconductors',
+    ];
+    if (!validCategories.includes(topic.category as TopicCategory)) {
+      topic.category = 'AI'; // Fallback if Claude returns an unrecognised category
     }
   }
 

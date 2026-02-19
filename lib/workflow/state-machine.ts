@@ -19,8 +19,8 @@ function getSupabase() {
 // ─── State Transitions ────────────────────────────────────────────────────────
 
 /**
- * Checks if a new weekly research cycle should start.
- * True when: no active workflow AND 7+ days since last published post (or never).
+ * Checks if a new daily research cycle should start.
+ * True when: no active workflow AND 1+ day since last published post (or never).
  */
 export async function shouldStartNewCycle(): Promise<boolean> {
   const supabase = getSupabase();
@@ -46,7 +46,7 @@ export async function shouldStartNewCycle(): Promise<boolean> {
   const daysSince =
     (Date.now() - new Date(lastRun.published_at).getTime()) / (1000 * 60 * 60 * 24);
 
-  return daysSince >= 7;
+  return daysSince >= 1;
 }
 
 /**
@@ -284,13 +284,12 @@ export async function runWorkflowCron(
     return { action: 'post_published' };
   }
 
-  // Priority 3: Start new weekly research cycle
-  // Runs automatically on Monday 9am UTC, or immediately when force=true
+  // Priority 3: Start new daily research cycle
+  // Runs automatically at 9am UTC every day, or immediately when force=true
   const now = new Date();
-  const isMonday = now.getUTCDay() === 1;
   const isNineAm = now.getUTCHours() === 9;
 
-  if (force || (isMonday && isNineAm)) {
+  if (force || isNineAm) {
     const shouldStart = await shouldStartNewCycle();
     if (shouldStart) {
       await transitionIdleToTopicsSent();

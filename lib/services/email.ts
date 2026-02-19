@@ -26,7 +26,7 @@ export async function sendTopicsEmail(
   const { error } = await getResend().emails.send({
     from: FROM_EMAIL,
     to: process.env.OWNER_EMAIL!,
-    subject: '🔬 5 trending tech topics ready for your approval',
+    subject: '🔬 5 cutting-edge tech topics ready for your approval',
     html,
   });
 

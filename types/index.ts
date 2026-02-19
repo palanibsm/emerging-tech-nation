@@ -10,7 +10,19 @@ export type WorkflowStatus =
   | 'APPROVED'
   | 'PUBLISHED';
 
-export type TopicCategory = 'AI' | 'IoT' | 'AR/VR';
+export type TopicCategory =
+  | 'Agentic AI'
+  | 'AI'
+  | 'Quantum'
+  | 'Robotics'
+  | 'AR/VR'
+  | 'IoT'
+  | 'Biotech'
+  | 'Space Tech'
+  | 'Cybersecurity'
+  | 'Green Tech'
+  | 'Web3'
+  | 'Semiconductors';
 
 export interface Post {
   id: string;
