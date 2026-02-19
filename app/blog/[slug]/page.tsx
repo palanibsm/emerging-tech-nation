@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import BlogPost from '@/components/blog/BlogPost';
+import Comments from '@/components/blog/Comments';
 import type { Post } from '@/types';
 
 export const revalidate = 3600;
@@ -60,5 +61,12 @@ export default async function BlogPostPage({ params }: PageProps) {
   const post = await getPostBySlug(params.slug);
   if (!post) notFound();
 
-  return <BlogPost post={post} />;
+  return (
+    <>
+      <BlogPost post={post} />
+      <div className="max-w-3xl mx-auto px-4 pb-16">
+        <Comments postId={post.id} />
+      </div>
+    </>
+  );
 }
