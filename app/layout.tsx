@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
+import VisitorCount from '@/components/VisitorCount';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -73,8 +74,10 @@ export default function RootLayout({
 
         <footer className="border-t border-slate-200 bg-slate-50 mt-24">
           <div className="max-w-6xl mx-auto px-4 py-8 text-center text-sm text-slate-400">
-            <p>
-              © {new Date().getFullYear()} Emerging Tech Nation. Powered by AI.
+            <p className="flex items-center justify-center gap-3">
+              <span>© {new Date().getFullYear()} Emerging Tech Nation. Powered by AI.</span>
+              <span className="text-slate-300">·</span>
+              <VisitorCount />
             </p>
             <p className="mt-2 flex items-center justify-center gap-4">
               <a href="/privacy" className="hover:text-slate-500 transition-colors">
