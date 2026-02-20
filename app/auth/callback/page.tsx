@@ -1,33 +1,38 @@
 'use client';
 
 import { Suspense, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase/client';
 
 function CallbackInner() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
     const supabase = createBrowserClient();
     const next = searchParams.get('next') ?? '/';
 
-    // Supabase JS automatically exchanges the PKCE code in the URL for a session
+    // Register the listener FIRST to avoid a race condition where the SIGNED_IN
+    // event fires before the .then() callback runs.
+    // Use window.location.href (full reload) so the destination page re-initialises
+    // Supabase from localStorage and correctly picks up the new session.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        subscription.unsubscribe();
+        window.location.href = next;
+      }
+    });
+
+    // If the PKCE exchange already completed before the listener was registered,
+    // getSession() will catch it here.
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        router.replace(next);
-        return;
+        subscription.unsubscribe();
+        window.location.href = next;
       }
-
-      // Not yet — wait for the auth state change event
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-        if (event === 'SIGNED_IN') {
-          subscription.unsubscribe();
-          router.replace(next);
-        }
-      });
     });
-  }, [router, searchParams]);
+
+    return () => subscription.unsubscribe();
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

@@ -48,6 +48,11 @@ export default function RootLayout({
             <p>
               © {new Date().getFullYear()} Emerging Tech Nation. Powered by AI.
             </p>
+            <p className="mt-2">
+              <a href="/admin" className="hover:text-slate-500 transition-colors">
+                Admin
+              </a>
+            </p>
           </div>
         </footer>
       </body>
