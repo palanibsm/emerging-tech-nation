@@ -285,17 +285,17 @@ export async function runWorkflowCron(
   }
 
   // Priority 3: Start new daily research cycle
-  // Runs automatically at 9am UTC every day, or immediately when force=true
+  // Runs automatically at 3am UTC (= 8:30am IST) every day, or immediately when force=true
   const now = new Date();
-  const isNineAm = now.getUTCHours() === 9;
+  const isMorningIST = now.getUTCHours() === 3;
 
-  if (force || isNineAm) {
+  if (force || isMorningIST) {
     const shouldStart = await shouldStartNewCycle();
     if (shouldStart) {
       await transitionIdleToTopicsSent();
       return { action: 'research_started' };
     }
-    return { action: 'cycle_skipped_already_active' };
+    return { action: 'cycle_skipped_not_ready' };
   }
 
   console.log('[WorkflowCron] No transitions needed this tick');
