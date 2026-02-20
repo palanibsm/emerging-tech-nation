@@ -285,11 +285,11 @@ export async function runWorkflowCron(
   }
 
   // Priority 3: Start new daily research cycle
-  // Runs automatically at 3am UTC (= 8:30am IST) every day, or immediately when force=true
+  // Runs automatically at 22:00 UTC (= 6am SGT next day) every day, or immediately when force=true
   const now = new Date();
-  const isMorningIST = now.getUTCHours() === 3;
+  const isSixAmSGT = now.getUTCHours() === 22;
 
-  if (force || isMorningIST) {
+  if (force || isSixAmSGT) {
     const shouldStart = await shouldStartNewCycle();
     if (shouldStart) {
       await transitionIdleToTopicsSent();
