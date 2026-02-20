@@ -44,15 +44,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Google AdSense — replace YOUR_PUB_ID once approved */}
-        {process.env.NEXT_PUBLIC_ADSENSE_PUB_ID && (
-          <Script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_PUB_ID}`}
-            crossOrigin="anonymous"
-            strategy="afterInteractive"
-          />
-        )}
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6540640167973246"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </head>
       <body className={inter.className}>
         <header className="border-b border-slate-200 bg-white sticky top-0 z-50">
