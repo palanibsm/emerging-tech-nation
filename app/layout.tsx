@@ -4,19 +4,34 @@ import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
+const siteUrl = process.env.SITE_URL ?? 'https://emergingtechnation.com';
+
 export const metadata: Metadata = {
   title: {
     template: '%s | Emerging Tech Nation',
-    default: 'Emerging Tech Nation — AI, IoT & AR/VR Insights',
+    default: 'Emerging Tech Nation — AI, Quantum, Robotics & Emerging Tech Insights',
   },
   description:
-    'Emerging Tech Nation covers the latest breakthroughs in artificial intelligence, IoT, and augmented/virtual reality.',
-  metadataBase: new URL(
-    process.env.SITE_URL ?? 'https://emergingtechnation.com'
-  ),
+    'Emerging Tech Nation delivers daily insights on AI agents, quantum computing, robotics, cybersecurity, space tech, and cutting-edge emerging technologies.',
+  keywords: [
+    'emerging technology', 'agentic AI', 'quantum computing', 'robotics',
+    'cybersecurity', 'space technology', 'IoT', 'AR VR', 'tech news', 'AI blog',
+  ],
+  metadataBase: new URL(siteUrl),
+  alternates: { canonical: siteUrl },
   openGraph: {
     type: 'website',
     siteName: 'Emerging Tech Nation',
+    url: siteUrl,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@emergingtechnation',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
   },
 };
 
