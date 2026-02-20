@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -42,6 +43,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        {/* Google AdSense — replace YOUR_PUB_ID once approved */}
+        {process.env.NEXT_PUBLIC_ADSENSE_PUB_ID && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_PUB_ID}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
+      </head>
       <body className={inter.className}>
         <header className="border-b border-slate-200 bg-white sticky top-0 z-50">
           <nav className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -67,7 +79,10 @@ export default function RootLayout({
             <p>
               © {new Date().getFullYear()} Emerging Tech Nation. Powered by AI.
             </p>
-            <p className="mt-2">
+            <p className="mt-2 flex items-center justify-center gap-4">
+              <a href="/privacy" className="hover:text-slate-500 transition-colors">
+                Privacy Policy
+              </a>
               <a href="/admin" className="hover:text-slate-500 transition-colors">
                 Admin
               </a>
