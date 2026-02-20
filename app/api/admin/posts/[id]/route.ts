@@ -1,3 +1,4 @@
+import { revalidatePath } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 
@@ -38,10 +39,10 @@ export async function PUT(
 
   const supabase = createServerClient();
 
-  // Fetch current status so we know whether to set published_at
+  // Fetch current record so we know the slug and whether we're publishing
   const { data: existing } = await supabase
     .from('posts')
-    .select('status, published_at')
+    .select('status, published_at, slug')
     .eq('id', params.id)
     .single();
 
@@ -66,6 +67,15 @@ export async function PUT(
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Bust ISR cache whenever a published post changes (publish, update, or unpublish)
+  const affectedSlug = data?.slug ?? existing?.slug;
+  if (affectedSlug && (status === 'published' || existing?.status === 'published')) {
+    revalidatePath('/');
+    revalidatePath('/blog');
+    revalidatePath(`/blog/${affectedSlug}`);
+  }
+
   return NextResponse.json({ post: data });
 }
 
@@ -81,8 +91,23 @@ export async function DELETE(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const supabase = createServerClient();
-  const { error } = await supabase.from('posts').delete().eq('id', params.id);
 
+  // Fetch slug before deleting so we can revalidate the post's page
+  const { data: existing } = await supabase
+    .from('posts')
+    .select('slug, status')
+    .eq('id', params.id)
+    .single();
+
+  const { error } = await supabase.from('posts').delete().eq('id', params.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Bust cache if it was a published post
+  if (existing?.status === 'published' && existing?.slug) {
+    revalidatePath('/');
+    revalidatePath('/blog');
+    revalidatePath(`/blog/${existing.slug}`);
+  }
+
   return new NextResponse(null, { status: 204 });
 }

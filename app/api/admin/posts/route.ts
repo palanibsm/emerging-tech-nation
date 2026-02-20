@@ -1,3 +1,4 @@
+import { revalidatePath } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 
@@ -79,5 +80,13 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Bust ISR cache immediately so the new post appears without waiting up to 1 hour
+  if (isPublished && data) {
+    revalidatePath('/');
+    revalidatePath('/blog');
+    revalidatePath(`/blog/${data.slug}`);
+  }
+
   return NextResponse.json({ post: data }, { status: 201 });
 }
