@@ -38,7 +38,7 @@ export default function PostEditor({ post }: PostEditorProps) {
   const [excerpt, setExcerpt] = useState(post?.excerpt ?? '');
   const [tagsInput, setTagsInput] = useState(post?.tags.join(', ') ?? '');
   const [content, setContent] = useState(post?.content ?? '');
-  const [status, setStatus] = useState<'draft' | 'published'>(post?.status ?? 'draft');
+  const status = post?.status ?? 'draft';
   const [contentTab, setContentTab] = useState<ContentTab>(isNew ? 'paste' : 'html');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
