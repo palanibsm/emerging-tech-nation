@@ -43,10 +43,18 @@ export async function shouldStartNewCycle(): Promise<boolean> {
 
   if (!lastRun?.published_at) return true;
 
-  const daysSince =
-    (Date.now() - new Date(lastRun.published_at).getTime()) / (1000 * 60 * 60 * 24);
+  // Start a new cycle if the last publication was on a previous calendar day in SGT (UTC+8).
+  // This means one research cycle per SGT calendar day, regardless of what time the post published.
+  const SGT_OFFSET_MS = 8 * 60 * 60 * 1000;
+  const toSGTDateString = (ms: number) => {
+    const d = new Date(ms + SGT_OFFSET_MS);
+    return d.toISOString().slice(0, 10); // "YYYY-MM-DD"
+  };
 
-  return daysSince >= 1;
+  const lastPublishedDaySGT = toSGTDateString(new Date(lastRun.published_at).getTime());
+  const todaySGT = toSGTDateString(Date.now());
+
+  return lastPublishedDaySGT < todaySGT;
 }
 
 /**
