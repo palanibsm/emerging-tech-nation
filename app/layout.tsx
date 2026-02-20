@@ -45,11 +45,15 @@ export default function RootLayout({
       <body className={inter.className}>
         <header className="border-b border-slate-200 bg-white sticky top-0 z-50">
           <nav className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-            <a href="/" className="text-xl font-bold text-slate-900">
-              Emerging Tech Nation
+            <a href="/" className="flex items-center gap-2 text-xl font-extrabold text-slate-900 tracking-tight">
+              <span className="text-indigo-600">ETN</span>
+              <span className="hidden sm:inline">Emerging Tech Nation</span>
             </a>
-            <div className="flex items-center gap-6 text-sm font-medium text-slate-600">
-              <a href="/blog" className="hover:text-slate-900 transition-colors">
+            <div className="flex items-center gap-1 text-sm font-medium">
+              <a href="/" className="px-4 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors">
+                Home
+              </a>
+              <a href="/blog" className="px-4 py-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors">
                 Blog
               </a>
             </div>
