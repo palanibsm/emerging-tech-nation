@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
 import { createServerClient } from '@/lib/supabase/server';
-import BlogList from '@/components/blog/BlogList';
+import BlogSearch from '@/components/blog/BlogSearch';
 import type { Post } from '@/types';
 
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Blog',
-  description: 'All articles from Emerging Tech Nation covering AI, IoT, and AR/VR.',
+  description: 'All articles from Emerging Tech Nation covering AI, quantum computing, robotics, cybersecurity, and emerging technology.',
 };
 
 async function getAllPublishedPosts(): Promise<Post[]> {
@@ -34,11 +34,8 @@ export default async function BlogPage() {
     <div className="max-w-6xl mx-auto px-4 py-12">
       <div className="mb-10">
         <h1 className="text-4xl font-extrabold text-slate-900 mb-3">All Articles</h1>
-        <p className="text-slate-500">
-          {posts.length} article{posts.length !== 1 ? 's' : ''} published
-        </p>
       </div>
-      <BlogList posts={posts} />
+      <BlogSearch posts={posts} />
     </div>
   );
 }
