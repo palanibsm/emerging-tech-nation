@@ -9,9 +9,9 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
  * Writer Agent: Takes a selected topic and produces a full blog post draft.
  *
  * Steps:
- * 1. Run 4 targeted Tavily searches on the topic
+ * 1. Run 3 targeted Tavily searches on the topic
  * 2. Feed all research to Claude claude-sonnet-4-6
- * 3. Claude returns structured JSON with full HTML content
+ * 3. Claude returns metadata as JSON + HTML content between delimiters (avoids JSON escaping issues)
  * 4. Fetch a relevant image from Wikipedia and inject into the article
  */
 export async function runWriterAgent(topic: Topic): Promise<DraftPost> {
@@ -54,7 +54,6 @@ async function fetchWikipediaImage(query: string): Promise<string | null> {
     const pages = data.query?.pages ?? {};
     for (const page of Object.values(pages)) {
       if (page.thumbnail?.source) {
-        // Use a wider size by bumping the width in the URL (Wikipedia thumbnail CDN supports it)
         return page.thumbnail.source.replace(/\/\d+px-/, '/1200px-');
       }
     }
@@ -116,20 +115,26 @@ WRITING REQUIREMENTS:
 - Include concrete examples, statistics, and real-world applications
 - End with a forward-looking conclusion
 
-OUTPUT: Return ONLY valid JSON with exactly these fields (no markdown wrapper):
+OUTPUT FORMAT — return exactly two blocks:
 
+BLOCK 1 — metadata JSON (no content field):
+===META_START===
 {
   "title": "The exact final blog post title",
   "slug": "url-safe-kebab-case-slug",
   "excerpt": "2-3 sentence summary for SEO and previews",
   "tags": ["tag1", "tag2", "tag3"],
-  "imageSearchQuery": "2-4 word Wikipedia image search query relevant to the topic",
-  "imageCaption": "Short descriptive caption for the article image (max 12 words)",
-  "content": "<HTML content here>"
+  "imageSearchQuery": "2-4 word Wikipedia image search query",
+  "imageCaption": "Short descriptive caption max 12 words"
 }
+===META_END===
 
-CONTENT FIELD REQUIREMENTS:
-- Valid HTML only (not markdown)
+BLOCK 2 — HTML content only (no JSON wrapping):
+===CONTENT_START===
+<HTML content here>
+===CONTENT_END===
+
+HTML REQUIREMENTS:
 - Use <h2> for main sections, <h3> for subsections
 - Use <p> for paragraphs, <ul>/<li> for lists, <strong> for emphasis
 - Wrap each H2 section in <section> tags
@@ -148,50 +153,53 @@ SLUG: lowercase, hyphens only, 3-8 words max`;
   const responseText =
     message.content[0].type === 'text' ? message.content[0].text : '';
 
-  const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('[WriterAgent] Claude did not return a valid JSON object');
+  // Extract metadata JSON
+  const metaMatch = responseText.match(/===META_START===\s*([\s\S]*?)\s*===META_END===/);
+  if (!metaMatch) {
+    throw new Error('[WriterAgent] Claude did not return a META block');
   }
 
-  const raw = JSON.parse(jsonMatch[0]) as DraftPost & {
+  // Extract HTML content
+  const contentMatch = responseText.match(/===CONTENT_START===\s*([\s\S]*?)\s*===CONTENT_END===/);
+  if (!contentMatch) {
+    throw new Error('[WriterAgent] Claude did not return a CONTENT block');
+  }
+
+  const meta = JSON.parse(metaMatch[1]) as {
+    title: string;
+    slug: string;
+    excerpt: string;
+    tags: string[];
     imageSearchQuery?: string;
     imageCaption?: string;
   };
 
-  if (!raw.title || !raw.slug || !raw.content || !raw.excerpt || !raw.tags) {
-    throw new Error('[WriterAgent] Draft is missing required fields');
+  if (!meta.title || !meta.slug || !meta.excerpt || !meta.tags) {
+    throw new Error('[WriterAgent] Metadata is missing required fields');
   }
 
-  raw.slug = slugify(raw.slug || raw.title);
-
-  if (!Array.isArray(raw.tags) || raw.tags.length === 0) {
-    raw.tags = [topic.category.toLowerCase().replace('/', '-')];
+  const htmlContent = contentMatch[1].trim();
+  if (!htmlContent) {
+    throw new Error('[WriterAgent] HTML content block is empty');
   }
+
+  const slug = slugify(meta.slug || meta.title);
+  const tags = Array.isArray(meta.tags) && meta.tags.length > 0
+    ? meta.tags
+    : [topic.category.toLowerCase().replace('/', '-')];
 
   // Fetch a relevant Wikipedia image and inject it into the article
-  const imageQuery = raw.imageSearchQuery ?? topic.title;
-  const imageCaption = raw.imageCaption ?? topic.title;
+  const imageQuery = meta.imageSearchQuery ?? topic.title;
+  const imageCaption = meta.imageCaption ?? topic.title;
   const imageUrl = await fetchWikipediaImage(imageQuery);
 
+  let content = htmlContent;
   if (imageUrl) {
     console.log(`[WriterAgent] Injecting image: ${imageUrl}`);
-    raw.content = injectImageAfterFirstParagraph(
-      raw.content,
-      imageUrl,
-      imageQuery,
-      imageCaption
-    );
+    content = injectImageAfterFirstParagraph(content, imageUrl, imageQuery, imageCaption);
   } else {
     console.warn('[WriterAgent] No Wikipedia image found, skipping image injection');
   }
 
-  const draft: DraftPost = {
-    title: raw.title,
-    slug: raw.slug,
-    excerpt: raw.excerpt,
-    tags: raw.tags,
-    content: raw.content,
-  };
-
-  return draft;
+  return { title: meta.title, slug, excerpt: meta.excerpt, tags, content };
 }
