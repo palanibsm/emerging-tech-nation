@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runWorkflowCron } from '@/lib/workflow/state-machine';
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /**
  * Workflow cron handler — triggered hourly by GitHub Actions.
