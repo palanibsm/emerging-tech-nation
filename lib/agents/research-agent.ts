@@ -5,23 +5,25 @@ import type { Topic, TopicCategory, ResearchResult } from '@/types';
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const RESEARCH_QUERIES = [
-  'agentic AI autonomous agents breakthrough news latest 2025 2026',
-  'quantum computing breakthrough research applications latest 2025 2026',
-  'robotics humanoid robot AI news latest 2025 2026',
-  'spatial computing AR VR mixed reality new developments 2025 2026',
-  'biotech genomics synthetic biology breakthrough 2025 2026',
-  'space technology satellite launch commercial space news 2025 2026',
-  'cybersecurity threat AI-powered attacks defense 2025 2026',
-  'semiconductor chip AI hardware breakthrough 2025 2026',
+  'site:techcrunch.com OR site:theverge.com Quantum AI agents enterprise GenAI governance latest 2025 2026',
+  'site:zdnet.com OR site:wired.com Quantum cybersecurity zero trust autonomous security threat latest 2025 2026',
+  'site:arstechnica.com OR site:reuters.com Quantum AI infrastructure cloud enterprise technology latest 2025 2026',
+  'site:techradar.com OR site:zdnet.com Quantum banking financial services AI regulation compliance 2025 2026',
+  'site:wired.com OR site:techcrunch.com Quantum enterprise architecture risk AI policy emerging technology 2025 2026',
+  'site:theverge.com OR site:arstechnica.com Quantum generative AI enterprise deployment governance 2025 2026',
+  'site:reuters.com OR site:techcrunch.com Quantum cybersecurity AI-powered attacks defense enterprise 2025 2026',
+  'site:zdnet.com OR site:techradar.com Quantum cloud AI infrastructure semiconductor enterprise innovation 2025 2026',
 ];
 
 /**
- * Research Agent: Searches for trending tech news and curates 5 topic suggestions.
+ * Research Agent: Searches for enterprise-focused tech news and curates 5 topic suggestions.
  *
  * Steps:
- * 1. Run 5 parallel Tavily searches (AI, IoT, AR/VR space)
- * 2. Feed results to Claude claude-sonnet-4-6
- * 3. Claude returns exactly 5 structured Topic objects
+ * 1. Run 8 parallel Tavily searches targeting TechCrunch, The Verge, Ars Technica, ZDNet,
+ *    Wired, Reuters Tech, and TechRadar — focused on enterprise IT, cybersecurity, AI governance
+ * 2. Feed results to Claude as a senior technology research analyst
+ * 3. Claude returns exactly 5 structured Topic objects prioritising enterprise relevance,
+ *    banking/financial services impact, cybersecurity, and emerging tech strategy
  */
 export async function runResearchAgent(): Promise<Topic[]> {
   console.log('[ResearchAgent] Starting research phase...');
@@ -57,11 +59,17 @@ Content: ${r.content.slice(0, 800)}`
 }
 
 async function curateTopicsWithClaude(researchContext: string): Promise<Topic[]> {
-  const prompt = `You are a tech blog editor for "Emerging Tech Nation", covering all cutting-edge and emerging technologies.
+  const prompt = `You are a senior technology research analyst specializing in AI, cybersecurity, cloud, and enterprise IT.
 
-Based on these research results from today's tech news, generate exactly 5 compelling blog topic suggestions.
-Pick the 5 most newsworthy, exciting stories across ANY emerging technology — do not restrict to specific domains.
-Each topic should be timely, interesting to tech enthusiasts, and suitable for a 1500-2500 word blog post.
+Your task is to analyze the latest articles (last 24 hours) from top technology news websites such as TechCrunch, The Verge, Ars Technica, ZDNet, Wired, Reuters Tech, and TechRadar.
+
+From these sources, identify the most important, trending, and impactful developments. Focus on enterprise relevance, banking/financial services impact, cybersecurity implications, and emerging technologies. Avoid generic topics — prioritize strategic, research-worthy themes.
+
+Guidelines:
+- Each topic must be specific, actionable, and future-focused.
+- Use strong keywords like "Quantum", "AI Agents", "Zero Trust", "GenAI Governance", "AI Infrastructure", "Autonomous Security", etc.
+- Ensure topics reflect the latest industry shifts, not outdated trends.
+- Prioritize topics relevant to enterprise architecture, risk, compliance, and innovation.
 
 RESEARCH RESULTS:
 ${researchContext}
@@ -69,18 +77,18 @@ ${researchContext}
 Return ONLY a valid JSON array of exactly 5 topic objects. No markdown, no explanation, just the JSON.
 
 Each object must have exactly these fields:
-- title: string (compelling blog post title, 50-80 chars)
-- description: string (exactly 2 sentences describing what the post will cover)
+- title: string (concise, insight-rich topic title with strong enterprise/security keywords, 50-80 chars)
+- description: string (exactly 2 sentences on enterprise relevance, risk, or strategic impact)
 - category: one of "Agentic AI" | "AI" | "Quantum" | "Robotics" | "AR/VR" | "IoT" | "Biotech" | "Space Tech" | "Cybersecurity" | "Green Tech" | "Web3" | "Semiconductors"
-- searchQuery: string (targeted search query for deeper research on this topic)
+- searchQuery: string (targeted search query for deeper enterprise-focused research on this topic)
 
 Example:
 [
   {
-    "title": "How Agentic AI Is Replacing Entire Software Teams in 2025",
-    "description": "Autonomous AI agents are now writing, testing, and deploying code with minimal human oversight. We explore which companies are leading this shift and what it means for developers.",
+    "title": "AI Agents Reshaping Enterprise IT: Risks, Governance, and the Road Ahead",
+    "description": "Autonomous AI agents are being deployed across enterprise workflows, raising new questions around governance, access control, and auditability. This post examines how CIOs and security teams are responding to the agentic AI shift.",
     "category": "Agentic AI",
-    "searchQuery": "agentic AI software development autonomous coding agents 2025"
+    "searchQuery": "AI agents enterprise governance risk compliance 2025 2026"
   }
 ]`;
 

@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Emerging Tech Nation
 
-## Getting Started
+An AI-powered, automated tech blog that researches, writes, and publishes daily articles on enterprise technology, cybersecurity, and emerging AI — with minimal human intervention.
 
-First, run the development server:
+## How It Works
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+The publication pipeline runs on an hourly cron and advances through a state machine:
+
+```
+IDLE → TOPICS_SENT → TOPIC_SELECTED → DRAFT_SENT → APPROVED → PUBLISHED
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. **Research** — 8 parallel web searches across TechCrunch, The Verge, Ars Technica, ZDNet, Wired, Reuters Tech, and TechRadar. Claude (acting as a senior technology research analyst) curates 5 enterprise-focused topic suggestions covering AI agents, cybersecurity, GenAI governance, and financial services impact.
+2. **Topic Selection** — Owner receives an email with 5 one-click topic links and selects one.
+3. **Writing** — Writer agent runs 3 targeted searches on the chosen topic; Claude writes a 500–800 word HTML blog post and injects a relevant Wikipedia image.
+4. **Approval** — Owner receives a draft preview email with approve/reject buttons.
+5. **Publishing** — Post is inserted into the database, ISR revalidation triggers on `/`, `/blog`, and the new post's slug, and a confirmation email with the live URL is sent.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 14.2 (App Router) + TypeScript |
+| Database | Supabase (PostgreSQL + RLS) |
+| AI | Claude Sonnet 4.6 (Anthropic) |
+| Search | Tavily API |
+| Email | Resend + React Email |
+| Styling | Tailwind CSS |
+| Hosting | Vercel |
+| Cron | GitHub Actions (hourly) |
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/                  # Next.js app router — pages, API routes
+lib/
+  agents/             # research-agent, writer-agent, publisher-agent
+  workflow/           # state-machine orchestrator
+  services/           # email (Resend) + search (Tavily)
+  supabase/           # DB client
+components/           # React UI (blog, admin, comments)
+emails/               # React Email templates
+scripts/              # Local test runners
+types/                # TypeScript interfaces
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Environment Variables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Copy `.env.local.example` to `.env.local` and fill in the values:
 
-## Deploy on Vercel
+```bash
+cp .env.local.example .env.local
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Variable | Description |
+|---|---|
+| `ANTHROPIC_API_KEY` | Claude API key |
+| `TAVILY_API_KEY` | Tavily web search key |
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (full DB access) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Public Supabase URL (browser) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (browser) |
+| `RESEND_API_KEY` | Resend email key |
+| `OWNER_EMAIL` | Recipient for topic/draft/publish emails |
+| `SITE_URL` | Production domain (used in email links + ISR) |
+| `CRON_SECRET` | Bearer token securing the cron endpoint |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Local Development
+
+```bash
+npm install
+npm run dev        # Start dev server at http://localhost:3000
+```
+
+### Test the research agent locally
+
+```bash
+npx tsx scripts/test-research-agent.ts
+```
+
+### Manually trigger the full workflow cron
+
+```bash
+npx tsx scripts/run-cron.ts --force
+```
+
+`--force` bypasses the daily schedule check. The cron advances whatever state the workflow is currently in (starts research, writes draft, or publishes — one step per invocation).
+
+## Admin
+
+Visit `/admin` to manually create, edit, and publish posts.
+
+## Database
+
+Schema files are in the repo root:
+- `supabase-migrations.sql` — posts and workflow_runs tables
+- `supabase-comments.sql` — comments table with OAuth user fields
