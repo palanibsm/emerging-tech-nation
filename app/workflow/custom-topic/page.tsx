@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function CustomTopicPage() {
+function CustomTopicForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token') ?? '';
@@ -90,5 +90,13 @@ export default function CustomTopicPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function CustomTopicPage() {
+  return (
+    <Suspense fallback={<div className="max-w-xl mx-auto px-4 py-24 text-center text-slate-400">Loading…</div>}>
+      <CustomTopicForm />
+    </Suspense>
   );
 }
