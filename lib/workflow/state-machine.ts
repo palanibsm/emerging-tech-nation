@@ -256,6 +256,37 @@ export async function transitionApprovedToPublished(
   console.log(`[Workflow] PUBLISHED: ${publicUrl}`);
 }
 
+// ─── Expiry ───────────────────────────────────────────────────────────────────
+
+const EXPIRY_HOURS = 6;
+
+/**
+ * Deletes any workflow run that has been waiting for owner action for more
+ * than EXPIRY_HOURS hours. Applies to TOPICS_SENT and DRAFT_SENT states —
+ * these are the only states that pause and wait for a human response.
+ * TOPIC_SELECTED and APPROVED are auto-advanced by the next cron tick.
+ */
+async function expireStaleWorkflows(): Promise<string | null> {
+  const supabase = getSupabase();
+  const cutoff = new Date(Date.now() - EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
+
+  const { data: stale } = await supabase
+    .from('workflow_runs')
+    .select('id, status, topics_sent_at, draft_sent_at')
+    .or(
+      `and(status.eq.TOPICS_SENT,topics_sent_at.lt.${cutoff}),` +
+      `and(status.eq.DRAFT_SENT,draft_sent_at.lt.${cutoff})`
+    )
+    .limit(1)
+    .maybeSingle();
+
+  if (!stale) return null;
+
+  await supabase.from('workflow_runs').delete().eq('id', stale.id);
+  console.log(`[WorkflowCron] Expired stale workflow run ${stale.id} (status: ${stale.status})`);
+  return stale.status as string;
+}
+
 // ─── Main Orchestrator ────────────────────────────────────────────────────────
 
 /**
@@ -267,6 +298,12 @@ export async function runWorkflowCron(
 ): Promise<{ action: string }> {
   console.log(`[WorkflowCron] Starting hourly check... (force=${force})`);
   const supabase = getSupabase();
+
+  // Expire any workflow that has been waiting for owner action for > 6 hours
+  const expiredStatus = await expireStaleWorkflows();
+  if (expiredStatus) {
+    console.log(`[WorkflowCron] Stale ${expiredStatus} workflow expired — cycle will restart`);
+  }
 
   // Priority 1: Advance TOPIC_SELECTED → write draft
   const { data: topicSelectedRun } = await supabase
