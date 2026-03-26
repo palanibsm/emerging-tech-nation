@@ -311,7 +311,7 @@ const EXPIRY_HOURS = 6;
  * Deletes any workflow run that has been waiting for owner action for more
  * than EXPIRY_HOURS hours. Applies to TOPICS_SENT and DRAFT_SENT states —
  * these are the only states that pause and wait for a human response.
- * TOPIC_SELECTED and APPROVED are auto-advanced by the next cron tick.
+ * TOPIC_SELECTED and APPROVED are auto-advanced by the next daily cron run.
  */
 async function expireStaleWorkflows(): Promise<string | null> {
   const supabase = getSupabase();
@@ -337,13 +337,13 @@ async function expireStaleWorkflows(): Promise<string | null> {
 // ─── Main Orchestrator ────────────────────────────────────────────────────────
 
 /**
- * Hourly cron orchestrator — idempotent, called by /api/cron/workflow.
+ * Daily cron orchestrator — idempotent, runs at 6am SGT via GitHub Actions.
  * Checks current state and advances the workflow as needed.
  */
 export async function runWorkflowCron(
   force = false
 ): Promise<{ action: string }> {
-  console.log(`[WorkflowCron] Starting hourly check... (force=${force})`);
+  console.log(`[WorkflowCron] Starting daily check... (force=${force})`);
   const supabase = getSupabase();
 
   // Expire any workflow that has been waiting for owner action for > 6 hours
@@ -376,13 +376,9 @@ export async function runWorkflowCron(
     return { action: 'post_published' };
   }
 
-  // Priority 3: Start new daily research cycle
-  // Runs automatically at 22:00 UTC (= 6am SGT next day) every day, or immediately when force=true
-  const now = new Date();
-  const isSixAmSGT = now.getUTCHours() === 22;
-
-  if (force || isSixAmSGT) {
-    const shouldStart = await shouldStartNewCycle();
+  // Priority 3: Start new daily research cycle (cron runs once daily at 6am SGT)
+  const shouldStart = await shouldStartNewCycle();
+  if (shouldStart || force) {
     if (shouldStart) {
       await transitionIdleToTopicsSent();
       return { action: 'research_started' };

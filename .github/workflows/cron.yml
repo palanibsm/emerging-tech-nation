@@ -1,9 +1,9 @@
 name: Workflow Cron
 
 on:
-  # Run every hour at :00
+  # Run daily at 6am SGT (22:00 UTC)
   schedule:
-    - cron: '0 * * * *'
+    - cron: '0 22 * * *'
   # Allow manual trigger from GitHub Actions UI for testing
   workflow_dispatch:
     inputs:
