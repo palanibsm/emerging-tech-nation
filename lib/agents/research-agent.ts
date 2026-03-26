@@ -81,6 +81,7 @@ Each object must have exactly these fields:
 - description: string (exactly 2 sentences on enterprise relevance, risk, or strategic impact)
 - category: one of "Agentic AI" | "AI" | "Quantum" | "Robotics" | "AR/VR" | "IoT" | "Biotech" | "Space Tech" | "Cybersecurity" | "Green Tech" | "Web3" | "Semiconductors"
 - searchQuery: string (targeted search query for deeper enterprise-focused research on this topic)
+- citations: array of up to 3 objects with "title" and "url" fields — the actual source articles from the RESEARCH RESULTS above that most informed this topic
 
 Example:
 [
@@ -88,7 +89,11 @@ Example:
     "title": "AI Agents Reshaping Enterprise IT: Risks, Governance, and the Road Ahead",
     "description": "Autonomous AI agents are being deployed across enterprise workflows, raising new questions around governance, access control, and auditability. This post examines how CIOs and security teams are responding to the agentic AI shift.",
     "category": "Agentic AI",
-    "searchQuery": "AI agents enterprise governance risk compliance 2025 2026"
+    "searchQuery": "AI agents enterprise governance risk compliance 2025 2026",
+    "citations": [
+      { "title": "How AI Agents Are Changing Enterprise Security", "url": "https://techcrunch.com/..." },
+      { "title": "Governance Frameworks for Autonomous AI", "url": "https://zdnet.com/..." }
+    ]
   }
 ]`;
 

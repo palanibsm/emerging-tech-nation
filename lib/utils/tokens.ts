@@ -12,7 +12,7 @@ export function generateToken(): string {
  */
 export function buildActionUrl(
   token: string,
-  action: 'select' | 'approve',
+  action: 'select' | 'approve' | 'custom',
   topicIndex?: number
 ): string {
   const base = process.env.SITE_URL ?? '';

@@ -36,11 +36,17 @@ export interface Post {
   published_at: string | null;
 }
 
+export interface TopicCitation {
+  title: string;
+  url: string;
+}
+
 export interface Topic {
   title: string;
   description: string;
   category: TopicCategory;
   searchQuery: string;
+  citations?: TopicCitation[];
 }
 
 export interface WorkflowRun {

@@ -143,6 +143,53 @@ export async function transitionTopicsSentToTopicSelected(
 }
 
 /**
+ * TOPICS_SENT → TOPIC_SELECTED (custom user-entered topic)
+ * Called when the owner submits their own topic via the UI form.
+ */
+export async function transitionTopicsSentToCustomTopic(
+  token: string,
+  customTitle: string
+): Promise<WorkflowRun> {
+  console.log(`[Workflow] TOPICS_SENT → TOPIC_SELECTED (custom: "${customTitle}")`);
+  const supabase = getSupabase();
+
+  const { data: run, error: findError } = await supabase
+    .from('workflow_runs')
+    .select('*')
+    .eq('approval_token', token)
+    .eq('status', 'TOPICS_SENT')
+    .single();
+
+  if (findError || !run) {
+    throw new Error('Invalid token or workflow is not in TOPICS_SENT state');
+  }
+
+  const customTopic: Topic = {
+    title: customTitle,
+    description: 'Custom topic selected by the site owner.',
+    category: 'AI',
+    searchQuery: customTitle,
+  };
+
+  const { data: updatedRun, error: updateError } = await supabase
+    .from('workflow_runs')
+    .update({
+      status: 'TOPIC_SELECTED',
+      selected_topic: customTopic,
+      topic_selected_at: new Date().toISOString(),
+    })
+    .eq('id', run.id)
+    .select()
+    .single();
+
+  if (updateError || !updatedRun) {
+    throw new Error(`Failed to update workflow run: ${updateError?.message}`);
+  }
+
+  return updatedRun as WorkflowRun;
+}
+
+/**
  * TOPIC_SELECTED → DRAFT_SENT
  * Runs the writer agent and sends the draft review email.
  * Called by the hourly cron when it detects TOPIC_SELECTED state.

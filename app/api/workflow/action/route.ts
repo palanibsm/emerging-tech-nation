@@ -59,6 +59,12 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      case 'custom': {
+        return NextResponse.redirect(
+          new URL(`/workflow/custom-topic?token=${encodeURIComponent(token)}`, request.url)
+        );
+      }
+
       default:
         return errorRedirect('unknown-action');
     }

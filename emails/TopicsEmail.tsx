@@ -7,6 +7,7 @@ import {
   Heading,
   Hr,
   Html,
+  Link,
   Preview,
   Section,
   Text,
@@ -35,6 +36,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function TopicsEmail({ topics, token }: TopicsEmailProps) {
+  const customUrl = buildActionUrl(token, 'custom');
+
   return (
     <Html>
       <Head />
@@ -44,13 +47,13 @@ export default function TopicsEmail({ topics, token }: TopicsEmailProps) {
           {/* Header */}
           <Section style={header}>
             <Heading style={heading}>Emerging Tech Nation</Heading>
-            <Text style={subheading}>Weekly Topic Selection</Text>
+            <Text style={subheading}>Daily Topic Selection</Text>
           </Section>
 
           <Text style={intro}>
             Your AI research agent has found <strong>5 trending topics</strong> for
-            this week. Click <strong>Select This Topic</strong> on the one you want
-            written. The writer agent will start immediately.
+            today. Click <strong>Select This Topic</strong> on the one you want
+            written, or choose your own at the bottom.
           </Text>
 
           <Hr style={hr} />
@@ -68,6 +71,22 @@ export default function TopicsEmail({ topics, token }: TopicsEmailProps) {
               </Text>
               <Text style={topicTitle}>{topic.title}</Text>
               <Text style={topicDesc}>{topic.description}</Text>
+
+              {/* Citations */}
+              {topic.citations && topic.citations.length > 0 && (
+                <Section style={citationsBox}>
+                  <Text style={citationsLabel}>Sources</Text>
+                  {topic.citations.map((c, ci) => (
+                    <Text key={ci} style={citationItem}>
+                      {'→ '}
+                      <Link href={c.url} style={citationLink}>
+                        {c.title}
+                      </Link>
+                    </Text>
+                  ))}
+                </Section>
+              )}
+
               <Button
                 href={buildActionUrl(token, 'select', index)}
                 style={selectBtn}
@@ -76,6 +95,19 @@ export default function TopicsEmail({ topics, token }: TopicsEmailProps) {
               </Button>
             </Section>
           ))}
+
+          <Hr style={hr} />
+
+          {/* Custom Topic Card */}
+          <Section style={{ ...card, backgroundColor: '#f8fafc', borderStyle: 'dashed' }}>
+            <Text style={customTitle}>Have a topic in mind?</Text>
+            <Text style={topicDesc}>
+              Skip the suggestions and write about something specific. Click below to enter your own topic.
+            </Text>
+            <Button href={customUrl} style={customBtn}>
+              Select Your Own Topic →
+            </Button>
+          </Section>
 
           <Hr style={hr} />
 
@@ -145,8 +177,49 @@ const topicDesc = {
   lineHeight: '1.6',
   margin: '0 0 16px 0',
 };
+const citationsBox = {
+  backgroundColor: '#f8fafc',
+  borderLeft: '3px solid #e2e8f0',
+  borderRadius: '4px',
+  padding: '10px 14px',
+  marginBottom: '16px',
+};
+const citationsLabel = {
+  color: '#94a3b8',
+  fontSize: '11px',
+  fontWeight: '700',
+  letterSpacing: '0.08em',
+  margin: '0 0 6px 0',
+  textTransform: 'uppercase' as const,
+};
+const citationItem = {
+  color: '#6b7280',
+  fontSize: '12px',
+  lineHeight: '1.5',
+  margin: '0 0 4px 0',
+};
+const citationLink = {
+  color: '#6366f1',
+  textDecoration: 'none',
+};
 const selectBtn = {
   backgroundColor: '#0f172a',
+  borderRadius: '6px',
+  color: '#ffffff',
+  display: 'inline-block',
+  fontSize: '14px',
+  fontWeight: '600',
+  padding: '10px 20px',
+  textDecoration: 'none',
+};
+const customTitle = {
+  color: '#0f172a',
+  fontSize: '16px',
+  fontWeight: '700',
+  margin: '0 0 8px 0',
+};
+const customBtn = {
+  backgroundColor: '#6366f1',
   borderRadius: '6px',
   color: '#ffffff',
   display: 'inline-block',
