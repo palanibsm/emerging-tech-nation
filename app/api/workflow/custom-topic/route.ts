@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { waitUntil } from '@vercel/functions';
 import { transitionTopicsSentToCustomTopic } from '@/lib/workflow/state-machine';
 
 export async function POST(request: NextRequest) {
@@ -18,6 +19,15 @@ export async function POST(request: NextRequest) {
     }
 
     await transitionTopicsSentToCustomTopic(token, trimmedTitle);
+
+    // Immediately trigger the writer agent in the background
+    const advanceUrl = new URL('/api/workflow/advance', request.url).toString();
+    waitUntil(
+      fetch(advanceUrl, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
+      })
+    );
 
     return NextResponse.json({ success: true, title: trimmedTitle });
   } catch (error) {

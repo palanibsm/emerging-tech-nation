@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { waitUntil } from '@vercel/functions';
 import {
   transitionTopicsSentToTopicSelected,
   transitionDraftSentToApproved,
@@ -8,14 +9,27 @@ import {
  * Handles user action clicks from email links.
  *
  * GET /api/workflow/action?token=xxx&action=select&topic=2
- *   → Records topic selection, redirects to confirmation page
+ *   → Records topic selection, redirects to confirmation page,
+ *     then immediately fires the writer agent in the background
  *
  * GET /api/workflow/action?token=xxx&action=approve
- *   → Records approval, redirects to success page
+ *   → Records approval, redirects to success page,
+ *     then immediately fires the publisher agent in the background
  *
  * Security: 256-bit random token in the URL — unforgeable without the email.
  * GET is used because email clients render action links as anchor tags.
  */
+
+function triggerAdvance(request: NextRequest) {
+  const advanceUrl = new URL('/api/workflow/advance', request.url).toString();
+  waitUntil(
+    fetch(advanceUrl, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
+    })
+  );
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const token = searchParams.get('token');
@@ -44,6 +58,8 @@ export async function GET(request: NextRequest) {
         const run = await transitionTopicsSentToTopicSelected(token, topicIndex);
         const selectedTitle = (run.selected_topic as { title: string } | null)?.title ?? 'your topic';
 
+        triggerAdvance(request);
+
         return NextResponse.redirect(
           new URL(
             `/workflow/topic-selected?topic=${encodeURIComponent(selectedTitle)}`,
@@ -54,6 +70,9 @@ export async function GET(request: NextRequest) {
 
       case 'approve': {
         await transitionDraftSentToApproved(token);
+
+        triggerAdvance(request);
+
         return NextResponse.redirect(
           new URL('/workflow/approved', request.url)
         );
