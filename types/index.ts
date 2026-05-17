@@ -82,3 +82,55 @@ export interface ResearchResult {
   content: string;
   score: number;
 }
+
+// ─── Agent Observability Types ────────────────────────────────────────────────
+
+export type AgentName =
+  | 'research-agent'
+  | 'writer-agent'
+  | 'publisher-agent'
+  | 'topic-ranker-agent'
+  | 'fact-check-agent'
+  | 'editor-agent';
+
+export type AgentRunStatus = 'started' | 'success' | 'failure';
+
+export interface AgentRun {
+  id: string;
+  workflow_run_id: string | null;
+  agent_name: AgentName;
+  status: AgentRunStatus;
+  input_payload: Record<string, unknown> | null;
+  output_payload: Record<string, unknown> | null;
+  error_message: string | null;
+  latency_ms: number | null;
+  token_cost_usd: number | null;
+  created_at: string;
+}
+
+// ─── Learning Loop Types ───────────────────────────────────────────────────────
+
+export interface TopicPerformance {
+  id: string;
+  workflow_run_id: string;
+  topic_title: string;
+  topic_category: TopicCategory;
+  topic_index: number;
+  was_selected: boolean;
+  was_custom: boolean;
+  selected_at: string | null;
+  published_post_id: string | null;
+  published_at: string | null;
+  created_at: string;
+}
+
+export interface PromptVersion {
+  id: string;
+  agent_name: AgentName;
+  version_label: string;
+  prompt_hash: string;
+  prompt_text: string;
+  is_active: boolean;
+  notes: string | null;
+  created_at: string;
+}

@@ -1,7 +1,25 @@
 import { createServerClient } from '@/lib/supabase/server';
-import { runResearchAgent } from '@/lib/agents/research-agent';
-import { runWriterAgent } from '@/lib/agents/writer-agent';
+import {
+  runResearchAgent,
+  RESEARCH_AGENT_PROMPT_TEMPLATE_SIGNATURE,
+  RESEARCH_AGENT_PROMPT_VERSION,
+} from '@/lib/agents/research-agent';
+import {
+  runWriterAgent,
+  WRITER_AGENT_PROMPT_TEMPLATE_SIGNATURE,
+  WRITER_AGENT_PROMPT_VERSION,
+} from '@/lib/agents/writer-agent';
 import { runPublisherAgent } from '@/lib/agents/publisher-agent';
+import {
+  runTopicRankerAgent,
+  TOPIC_RANKER_AGENT_PROMPT_TEMPLATE_SIGNATURE,
+  TOPIC_RANKER_AGENT_PROMPT_VERSION,
+} from '@/lib/agents/topic-ranker-agent';
+import {
+  runFactCheckAgent,
+  FACT_CHECK_AGENT_PROMPT_TEMPLATE_SIGNATURE,
+  FACT_CHECK_AGENT_PROMPT_VERSION,
+} from '@/lib/agents/fact-check-agent';
 import {
   sendTopicsEmail,
   sendDraftEmail,
@@ -9,6 +27,13 @@ import {
 } from '@/lib/services/email';
 import { generateToken } from '@/lib/utils/tokens';
 import type { WorkflowRun, Topic, DraftPost } from '@/types';
+import { runTrackedAgent } from '@/lib/agents/runtime';
+import {
+  markTopicPublished,
+  markTopicSelected,
+  recordPromptVersion,
+  recordTopicSlate,
+} from '@/lib/learning/memory';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -82,9 +107,43 @@ export async function transitionIdleToTopicsSent(): Promise<void> {
   }
 
   try {
-    const topics = await runResearchAgent();
+    const rawTopics = await runTrackedAgent(
+      {
+        supabase,
+        workflowRunId: run.id,
+        agentName: 'research-agent',
+        inputPayload: { queries: 'default-research-queries' },
+      },
+      () => runResearchAgent()
+    );
+
+    const topics = await runTrackedAgent(
+      {
+        supabase,
+        workflowRunId: run.id,
+        agentName: 'topic-ranker-agent',
+        inputPayload: { topics: rawTopics },
+      },
+      () => runTopicRankerAgent(rawTopics)
+    );
 
     await supabase.from('workflow_runs').update({ topics }).eq('id', run.id);
+
+    await recordPromptVersion(supabase, {
+      agentName: 'research-agent',
+      versionLabel: RESEARCH_AGENT_PROMPT_VERSION,
+      promptText: RESEARCH_AGENT_PROMPT_TEMPLATE_SIGNATURE,
+      notes: 'Phase 3 baseline prompt signature for topic curation',
+    });
+
+    await recordPromptVersion(supabase, {
+      agentName: 'topic-ranker-agent',
+      versionLabel: TOPIC_RANKER_AGENT_PROMPT_VERSION,
+      promptText: TOPIC_RANKER_AGENT_PROMPT_TEMPLATE_SIGNATURE,
+      notes: 'Phase 4 baseline prompt signature for topic reranking',
+    });
+
+    await recordTopicSlate(supabase, run.id, topics);
 
     await sendTopicsEmail(topics, token);
 
@@ -139,6 +198,15 @@ export async function transitionTopicsSentToTopicSelected(
   }
 
   console.log(`[Workflow] Topic selected: "${topics[topicIndex].title}"`);
+
+  await markTopicSelected(
+    supabase,
+    run.id,
+    topics[topicIndex],
+    topicIndex,
+    false
+  );
+
   return updatedRun as WorkflowRun;
 }
 
@@ -186,6 +254,8 @@ export async function transitionTopicsSentToCustomTopic(
     throw new Error(`Failed to update workflow run: ${updateError?.message}`);
   }
 
+  await markTopicSelected(supabase, run.id, customTopic, 999, true);
+
   return updatedRun as WorkflowRun;
 }
 
@@ -204,7 +274,42 @@ export async function transitionTopicSelectedToDraftSent(
     throw new Error('Workflow run has no selected_topic');
   }
 
-  const draft = await runWriterAgent(run.selected_topic as Topic);
+  const writerDraft = await runTrackedAgent(
+    {
+      supabase,
+      workflowRunId: run.id,
+      agentName: 'writer-agent',
+      inputPayload: { selectedTopic: run.selected_topic as Topic },
+    },
+    () => runWriterAgent(run.selected_topic as Topic)
+  );
+
+  const draft = await runTrackedAgent(
+    {
+      supabase,
+      workflowRunId: run.id,
+      agentName: 'fact-check-agent',
+      inputPayload: {
+        selectedTopic: run.selected_topic as Topic,
+        draftTitle: writerDraft.title,
+      },
+    },
+    () => runFactCheckAgent(writerDraft, run.selected_topic as Topic)
+  );
+
+  await recordPromptVersion(supabase, {
+    agentName: 'writer-agent',
+    versionLabel: WRITER_AGENT_PROMPT_VERSION,
+    promptText: WRITER_AGENT_PROMPT_TEMPLATE_SIGNATURE,
+    notes: 'Phase 3 baseline prompt signature for draft generation',
+  });
+
+  await recordPromptVersion(supabase, {
+    agentName: 'fact-check-agent',
+    versionLabel: FACT_CHECK_AGENT_PROMPT_VERSION,
+    promptText: FACT_CHECK_AGENT_PROMPT_TEMPLATE_SIGNATURE,
+    notes: 'Phase 4 baseline prompt signature for draft QA pass',
+  });
 
   const { error } = await supabase
     .from('workflow_runs')
@@ -277,7 +382,15 @@ export async function transitionApprovedToPublished(
     throw new Error('Workflow run has no draft_post');
   }
 
-  const publicUrl = await runPublisherAgent(run.draft_post as DraftPost);
+  const publicUrl = await runTrackedAgent(
+    {
+      supabase,
+      workflowRunId: run.id,
+      agentName: 'publisher-agent',
+      inputPayload: { draftPost: run.draft_post as DraftPost },
+    },
+    () => runPublisherAgent(run.draft_post as DraftPost)
+  );
 
   // Look up the post ID from slug to store the FK
   const { data: post } = await supabase
@@ -294,6 +407,13 @@ export async function transitionApprovedToPublished(
       published_at: new Date().toISOString(),
     })
     .eq('id', run.id);
+
+  await markTopicPublished(
+    supabase,
+    run.id,
+    post?.id ?? null,
+    new Date().toISOString()
+  );
 
   await sendPublishedConfirmationEmail(
     (run.draft_post as DraftPost).title,

@@ -1,8 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { parallelSearch } from '@/lib/services/search';
-import type { Topic, TopicCategory, ResearchResult } from '@/types';
+import type { Topic, ResearchResult } from '@/types';
+import { assertValidTopics } from '@/lib/agents/contracts';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+export const RESEARCH_AGENT_PROMPT_VERSION = 'v1';
+export const RESEARCH_AGENT_PROMPT_TEMPLATE_SIGNATURE =
+  'research-agent:v1:returns-5-topics-with-citations';
 
 const RESEARCH_QUERIES = [
   'site:techcrunch.com OR site:theverge.com Quantum AI agents enterprise GenAI governance latest 2025 2026',
@@ -112,25 +117,5 @@ Example:
   }
 
   const topics = JSON.parse(jsonMatch[0]) as Topic[];
-
-  if (!Array.isArray(topics) || topics.length !== 5) {
-    throw new Error(
-      `[ResearchAgent] Expected 5 topics, got ${Array.isArray(topics) ? topics.length : 'non-array'}`
-    );
-  }
-
-  for (const topic of topics) {
-    if (!topic.title || !topic.description || !topic.category || !topic.searchQuery) {
-      throw new Error('[ResearchAgent] Topic missing required fields');
-    }
-    const validCategories: TopicCategory[] = [
-      'Agentic AI', 'AI', 'Quantum', 'Robotics', 'AR/VR', 'IoT',
-      'Biotech', 'Space Tech', 'Cybersecurity', 'Green Tech', 'Web3', 'Semiconductors',
-    ];
-    if (!validCategories.includes(topic.category as TopicCategory)) {
-      topic.category = 'AI'; // Fallback if Claude returns an unrecognised category
-    }
-  }
-
-  return topics;
+  return assertValidTopics(topics);
 }

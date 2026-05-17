@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runWorkflowCron } from '@/lib/workflow/state-machine';
+import { runWorkflowOrchestrator } from '@/lib/orchestrator/workflow-orchestrator';
 
 export const maxDuration = 300;
 
@@ -18,11 +18,16 @@ export async function GET(request: NextRequest) {
   const force = request.nextUrl.searchParams.get('force') === 'true';
 
   try {
-    const result = await runWorkflowCron(force);
+    const result = await runWorkflowOrchestrator(force);
 
     return NextResponse.json({
       success: true,
       action: result.action,
+      attempts: result.attempts,
+      duration_ms: result.duration_ms,
+      forced: result.forced,
+      started_at: result.started_at,
+      finished_at: result.finished_at,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

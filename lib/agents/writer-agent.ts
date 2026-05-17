@@ -2,8 +2,13 @@ import Anthropic from '@anthropic-ai/sdk';
 import { parallelSearch } from '@/lib/services/search';
 import { slugify } from '@/lib/utils/slugify';
 import type { Topic, DraftPost, ResearchResult } from '@/types';
+import { assertValidDraftPost } from '@/lib/agents/contracts';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+export const WRITER_AGENT_PROMPT_VERSION = 'v1';
+export const WRITER_AGENT_PROMPT_TEMPLATE_SIGNATURE =
+  'writer-agent:v1:meta-plus-html-block-output';
 
 /**
  * Writer Agent: Takes a selected topic and produces a full blog post draft.
@@ -201,5 +206,5 @@ SLUG: lowercase, hyphens only, 3-8 words max`;
     console.warn('[WriterAgent] No Wikipedia image found, skipping image injection');
   }
 
-  return { title: meta.title, slug, excerpt: meta.excerpt, tags, content };
+  return assertValidDraftPost({ title: meta.title, slug, excerpt: meta.excerpt, tags, content });
 }
