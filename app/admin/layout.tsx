@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createBrowserClient } from '@/lib/supabase/client';
 
-type AuthStatus = 'loading' | 'no-session' | 'unauthorized' | 'admin';
+type AuthStatus = 'loading' | 'no-session' | 'admin';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     async function check() {
@@ -25,10 +26,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       if (res.ok) {
         const { isAdmin } = await res.json();
-        setStatus(isAdmin ? 'admin' : 'unauthorized');
-      } else {
-        setStatus('unauthorized');
+
+        if (isAdmin) {
+          setStatus('admin');
+          return;
+        }
+
+        // Wrong account: clear cached session immediately
+        await supabase.auth.signOut();
+        setNotice('You signed in with a non-admin account. Please sign in with the owner email.');
+        setStatus('no-session');
+        return;
       }
+
+      // Invalid/expired token or auth check failed: clear local session as safe fallback
+      await supabase.auth.signOut();
+      setStatus('no-session');
     }
     check();
   }, []);
@@ -49,6 +62,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <p className="text-slate-500 text-sm mb-6">
             Sign in with your owner Google account to manage blog posts.
           </p>
+          {notice && (
+            <p className="text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 text-sm mb-4">
+              {notice}
+            </p>
+          )}
           <button
             onClick={() => {
               const supabase = createBrowserClient();
@@ -68,14 +86,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (status === 'unauthorized') {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <p className="text-red-500 font-medium">Access denied — not an admin account.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="bg-white border-b border-slate-200 px-4 py-3">
@@ -87,7 +97,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/admin/posts/new" className="text-indigo-600 hover:text-indigo-800">
             + New Post
           </Link>
-          <Link href="/" className="text-slate-400 hover:text-slate-600 ml-auto">
+          <button
+            onClick={async () => {
+              const supabase = createBrowserClient();
+              await supabase.auth.signOut();
+              setNotice('You have been logged out.');
+              setStatus('no-session');
+            }}
+            className="ml-auto text-slate-500 hover:text-slate-700"
+          >
+            Logout
+          </button>
+          <Link href="/" className="text-slate-400 hover:text-slate-600">
             ← Back to site
           </Link>
         </div>
