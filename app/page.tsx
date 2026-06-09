@@ -1,5 +1,6 @@
 import { createServerClient } from '@/lib/supabase/server';
 import BlogList from '@/components/blog/BlogList';
+import YouTubeLatestVideo from '@/components/YouTube/LatestVideo';
 import type { Post } from '@/types';
 
 export const revalidate = 3600;
@@ -214,8 +215,19 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── Latest Video ── */}
+      <section className="max-w-6xl mx-auto px-4 py-16 border-t border-slate-100">
+        <div className="mb-12">
+          <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Latest from our Channel</h2>
+          <p className="text-slate-600">Watch our latest video on emerging technologies</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <YouTubeLatestVideo />
+        </div>
+      </section>
+
       {/* ── Latest articles ── */}
-      <section className="max-w-6xl mx-auto px-4 py-16">
+      <section className="max-w-6xl mx-auto px-4 py-16 border-t border-slate-100">
         <BlogList posts={posts} title="Latest Articles" />
         {posts.length > 0 && (
           <div className="text-center mt-12">
