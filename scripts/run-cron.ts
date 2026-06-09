@@ -50,7 +50,7 @@ async function runWithRetry(
 
 async function main() {
   console.log(`[runner] Starting workflow cron (force=${force})...`);
-  console.log('[runner] ANTHROPIC_API_KEY set:', !!process.env.ANTHROPIC_API_KEY);
+  console.log('[runner] OPENROUTER_API_KEY set:', !!process.env.OPENROUTER_API_KEY);
   console.log('[runner] SUPABASE_URL set:', !!process.env.SUPABASE_URL);
   console.log('[runner] TAVILY_API_KEY set:', !!process.env.TAVILY_API_KEY);
 

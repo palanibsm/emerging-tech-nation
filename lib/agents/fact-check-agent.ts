@@ -1,8 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { callClaude } from '@/lib/services/openrouter';
 import type { DraftPost, Topic } from '@/types';
 import { assertValidDraftPost } from '@/lib/agents/contracts';
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export const FACT_CHECK_AGENT_PROMPT_VERSION = 'v1';
 export const FACT_CHECK_AGENT_PROMPT_TEMPLATE_SIGNATURE =
@@ -28,13 +26,13 @@ ${JSON.stringify(topic, null, 2)}
 DRAFT:
 ${JSON.stringify(draft, null, 2)}`;
 
-  const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+  const message = await callClaude({
+    model: 'claude-sonnet-4',
     max_tokens: 3200,
     messages: [{ role: 'user', content: prompt }],
   });
 
-  const responseText = message.content[0]?.type === 'text' ? message.content[0].text : '';
+  const responseText = message.content[0].text;
   const jsonMatch = responseText.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error('[FactCheckAgent] Claude did not return valid JSON');
