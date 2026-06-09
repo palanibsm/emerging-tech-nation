@@ -107,6 +107,7 @@ export async function transitionIdleToTopicsSent(): Promise<void> {
   }
 
   try {
+    console.log(`[Workflow] Supabase URL: ${process.env.SUPABASE_URL?.substring(0, 30)}...`);
     const rawTopics = await runTrackedAgent(
       {
         supabase,
