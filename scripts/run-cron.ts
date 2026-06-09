@@ -30,8 +30,7 @@ async function runWithRetry(
       return await fn();
     } catch (err) {
       lastError = err as Error;
-      const isFetchError =
-        err instanceof TypeError && err.message.includes('fetch failed');
+      const isFetchError = lastError.message.includes('fetch failed');
 
       if (isFetchError && attempt < maxAttempts) {
         const waitMs = delayMs * attempt;
